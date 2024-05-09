@@ -4,8 +4,7 @@ import numpy as np
 import csv
 import time
 
-interFolder = 'InterimResults'
-colors = (0, 255, 0)
+interFolder = 'interim'
 
 if not os.path.exists(interFolder):
     os.makedirs(interFolder)
@@ -16,21 +15,16 @@ def magic(path,lastMid,lastAvg):
     iff = 0
     name, exten = os.path.splitext(os.path.basename(path))
     interPath = os.path.join(interFolder, name + '_B_'+'InterimResult' + str(iff) + exten)
-    
-    img_Orignal = cv2.imread(path, cv2.IMREAD_COLOR)
 
     img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-    
-    #img = cv2.GaussianBlur(img[0:400], (3, 3), 0)
-    
-    #kernel = np.ones((5, 5), np.uint8) 
-    #kernel[3,3] = 10
-    #img = cv2.erode(img, kernel, iterations=1) 
-    #img = cv2.dilate(img, kernel, iterations=2) 
-    #img = cv2.erode(img, kernel, iterations=1) 
-    
-  
-    
+    img = cv2.GaussianBlur(img[0:400], (3, 3), 0)
+
+    kernel = np.ones((5, 5), np.uint8) 
+    kernel[3,3] = 10
+    img = cv2.erode(img, kernel, iterations=1) 
+    img = cv2.dilate(img, kernel, iterations=2) 
+    img = cv2.erode(img, kernel, iterations=1)
+
 
     cut = cv2.Canny(img, 90, 190)
 
@@ -64,9 +58,11 @@ def magic(path,lastMid,lastAvg):
                 else:
                  middlecord = int(weld - lastAvg)
                 avg = lastAvg #update the average
+            
             else:
                 middlecord = int(weldgapCords[0] + avg)#if the weld gap is normal sized
-                        
+                print(f"{path}","HERE")
+
         else:
            
             if(white[0] < lastMid): #if there is only one pixel, repeat the above process of using past data
@@ -81,16 +77,15 @@ def magic(path,lastMid,lastAvg):
         
     print(f"{path}", middlecord)
     
-    #cv2.line(img_Orignal, (0, 75), (cut.shape[1], 70), colors, thickness=1) 
-    #cv2.imwrite(interPath, img_Orignal)#position of weld
+    cv2.imwrite(interPath, img[0:400,middlecord-200:middlecord+200])#blurred image interim ROI
     iff = 1
     interPath = os.path.join(interFolder, name + '_B_'+'InterimResult' + str(iff) + exten)
     cv2.imwrite(interPath, cut[0:400,middlecord-200:middlecord+200])#canny image interim ROI
 
     finalPath = os.path.join(interFolder, name + '_A_'+'WeldGapPosition' + exten)
-    cv2.line(img_Orignal, (0, 75), (cut.shape[1], 70), colors, thickness=1) 
-    cv2.line(img_Orignal, (middlecord, 0), (middlecord, cut.shape[0]), colors, thickness=1)
-    cv2.imwrite(finalPath, img_Orignal[0:400,middlecord-200:middlecord+200])#final image cropped tho
+    cv2.line(img, (0, 75), (cut.shape[1], 70), (255, 0, 0), thickness=1) 
+    cv2.line(img, (middlecord, 0), (middlecord, cut.shape[0]), (255, 0, 0), thickness=1)
+    cv2.imwrite(finalPath, img[0:400,middlecord-200:middlecord+200])#final image cropped tho
 
     #cv2.line(cut, (0, 75), (cut.shape[1], 70), (255, 255, 255), thickness=1) #viewing stuff
     #cv2.line(cut, (middlecord, 0), (middlecord, cut.shape[0]), (255, 255, 255), thickness=1)
@@ -129,19 +124,18 @@ def allImage(): #helper function that executes all the images in the folder
                           mid = lastMid
                           conf = 1
                       scribbleman.writerow([imgPath,mid,conf])#scribbleman instructions
+                
+
 
 def weldGapPoints(array): #helper function that returns the two adjacent points that have the largest weld gap under 10
     closest = 20
-    pair = (0,0)
     for i in range(len(array) - 1):
         difference = abs(array[i] - array[i+1])
-        if difference < 11 and abs(difference - 10) < abs(closest - 10):
+        if difference < 10 and abs(difference - 10) < abs(closest - 10):
             closest = difference
             pair = (array[i], array[i+1])
     
     return pair
-
-
 
 
 
